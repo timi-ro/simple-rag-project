@@ -28,6 +28,8 @@ def ensure_collection(client: QdrantClient) -> None:
 
 
 def load_pdf(path: str) -> str:
+    # TODO: track page numbers per chunk so retrieval results can cite "page 4"
+    # TODO: extract section/heading titles to improve chunk context
     import fitz  # PyMuPDF
 
     doc = fitz.open(path)
@@ -35,6 +37,8 @@ def load_pdf(path: str) -> str:
 
 
 def load_docx(path: str) -> str:
+    # TODO: track section titles (Heading styles) per paragraph
+    # TODO: preserve page number metadata if needed
     from docx import Document
 
     doc = Document(path)
