@@ -27,13 +27,12 @@ def ensure_collection(client: QdrantClient) -> None:
         )
 
 
-def load_pdf(path: str) -> str:
-    # TODO: track page numbers per chunk so retrieval results can cite "page 4"
+def load_pdf_pages(path: str) -> list[tuple[int, str]]:
     # TODO: extract section/heading titles to improve chunk context
     import fitz  # PyMuPDF
 
     doc = fitz.open(path)
-    return "".join(page.get_text() for page in doc)
+    return [(i + 1, page.get_text()) for i, page in enumerate(doc) if page.get_text().strip()]
 
 
 def load_docx(path: str) -> str:
@@ -50,8 +49,6 @@ def load_document(path: str) -> str:
     if not p.exists():
         raise FileNotFoundError(f"File not found: {path}")
     suffix = p.suffix.lower()
-    if suffix == ".pdf":
-        return load_pdf(str(p))
     if suffix in (".docx", ".doc"):
         return load_docx(str(p))
     if suffix in (".md", ".txt", ".rst", ""):

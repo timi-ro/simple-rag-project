@@ -51,8 +51,10 @@ def ask(question: str) -> None:
     for i, hit in enumerate(results, 1):
         source = hit.payload.get("source", "unknown")
         text = hit.payload.get("text", "")
+        page = hit.payload.get("page")
         score = hit.score
-        context_blocks.append(f"[{i}] (source: {source}, relevance: {score:.2f})\n{text}")
+        location = f"p.{page}" if page is not None else "n/a"
+        context_blocks.append(f"[{i}] (source: {source}, page: {location}, relevance: {score:.2f})\n{text}")
 
     context = "\n\n---\n\n".join(context_blocks)
 

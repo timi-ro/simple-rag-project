@@ -21,14 +21,31 @@ from rag_utils import (
     get_embedder,
     get_qdrant_client,
     load_document,
+    load_pdf_pages,
 )
+
+
+def build_chunks(file_path: str) -> tuple[list[str], list[dict]]:
+    """Return (chunks, metadata) where metadata[i] holds payload fields for chunk i."""
+    suffix = file_path.rsplit(".", 1)[-1].lower()
+
+    if suffix == "pdf":
+        pages = load_pdf_pages(file_path)
+        chunks, metadata = [], []
+        for page_num, page_text in pages:
+            for chunk in chunk_text(page_text):
+                chunks.append(chunk)
+                metadata.append({"page": page_num})
+        return chunks, metadata
+
+    text = load_document(file_path)
+    chunks = chunk_text(text)
+    return chunks, [{"page": None}] * len(chunks)
+
 
 def ingest(file_path: str) -> None:
     print(f"Loading '{file_path}'...")
-    text = load_document(file_path)
-    print(f"  Extracted {len(text):,} characters")
-
-    chunks = chunk_text(text)
+    chunks, metadata = build_chunks(file_path)
     print(f"  Split into {len(chunks)} chunks")
 
     print("  Embedding chunks (first run downloads the model ~90 MB)...")
@@ -43,9 +60,9 @@ def ingest(file_path: str) -> None:
         PointStruct(
             id=str(uuid.uuid4()),
             vector=emb.tolist(),
-            payload={"text": chunk, "source": source_name, "chunk_id": i},
+            payload={"text": chunk, "source": source_name, "chunk_id": i, **meta},
         )
-        for i, (chunk, emb) in enumerate(zip(chunks, embeddings))
+        for i, (chunk, emb, meta) in enumerate(zip(chunks, embeddings, metadata))
     ]
 
     client.upsert(collection_name=COLLECTION_NAME, points=points)
