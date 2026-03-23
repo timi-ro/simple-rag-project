@@ -35,9 +35,25 @@ def load_pdf_pages(path: str) -> list[tuple[int, str]]:
     return [(i + 1, page.get_text()) for i, page in enumerate(doc) if page.get_text().strip()]
 
 
-def load_docx(path: str) -> str:
-    # TODO: track section titles (Heading styles) per paragraph
+def load_docx_sections(path: str) -> list[tuple[str | None, str]]:
+    """Return [(section_title, paragraph_text), ...] tracking Heading styles."""
     # TODO: preserve page number metadata if needed
+    from docx import Document
+
+    doc = Document(path)
+    current_section = None
+    results = []
+    for p in doc.paragraphs:
+        if not p.text.strip():
+            continue
+        if p.style.name.startswith("Heading"):
+            current_section = p.text.strip()
+        else:
+            results.append((current_section, p.text.strip()))
+    return results
+
+
+def load_docx(path: str) -> str:
     from docx import Document
 
     doc = Document(path)

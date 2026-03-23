@@ -21,6 +21,7 @@ from rag_utils import (
     get_embedder,
     get_qdrant_client,
     load_document,
+    load_docx_sections,
     load_pdf_pages,
 )
 
@@ -35,12 +36,21 @@ def build_chunks(file_path: str) -> tuple[list[str], list[dict]]:
         for page_num, page_text in pages:
             for chunk in chunk_text(page_text):
                 chunks.append(chunk)
-                metadata.append({"page": page_num})
+                metadata.append({"page": page_num, "section_title": None})
+        return chunks, metadata
+
+    if suffix in ("docx", "doc"):
+        sections = load_docx_sections(file_path)
+        chunks, metadata = [], []
+        for section_title, para_text in sections:
+            for chunk in chunk_text(para_text):
+                chunks.append(chunk)
+                metadata.append({"page": None, "section_title": section_title})
         return chunks, metadata
 
     text = load_document(file_path)
     chunks = chunk_text(text)
-    return chunks, [{"page": None}] * len(chunks)
+    return chunks, [{"page": None, "section_title": None}] * len(chunks)
 
 
 def ingest(file_path: str) -> None:

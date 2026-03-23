@@ -65,7 +65,7 @@ simple-rag-project/
 ## Future Improvement in the Curriculum
 
 - [x] **Page tracking** — Extract text per page in `load_pdf` and store the page number in each chunk's Qdrant payload.
-- [ ] **Section awareness** — Parse `docx` heading styles (`Heading 1`, `Heading 2`) to attach a `section_title` to each paragraph chunk.
+- [x] **Section awareness** — Parse `docx` heading styles (`Heading 1`, `Heading 2`) to attach a `section_title` to each paragraph chunk.
 - [ ] **Smarter chunking** — Replace character-based chunking with heading-aware and paragraph-boundary strategies to avoid splitting mid-sentence or mid-concept.
 - [ ] **Richer payload** — Extend the Qdrant point payload from `{text, source, chunk_id}` to include `page`, `section_title`, and `file_type`.
 - [ ] **Payload filtering** — Use Qdrant's `Filter` with `must` conditions to scope searches to a specific file, file type, or page range.
