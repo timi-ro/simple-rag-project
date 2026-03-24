@@ -72,12 +72,54 @@ def load_document(path: str) -> str:
     raise ValueError(f"Unsupported file type '{suffix}'. Supported: .pdf, .docx, .md, .txt")
 
 
+def _split_sentences(text: str) -> list[str]:
+    """Split text into sentences on punctuation boundaries."""
+    import re
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+
+
 def chunk_text(text: str, chunk_size: int = 600, overlap: int = 80) -> list[str]:
-    chunks = []
-    start = 0
-    while start < len(text):
-        chunk = text[start : start + chunk_size].strip()
-        if chunk:
-            chunks.append(chunk)
-        start += chunk_size - overlap
+    """
+    Paragraph- and sentence-aware chunking:
+    1. Split on paragraph boundaries first.
+    2. Group short paragraphs together up to chunk_size.
+    3. Split oversized paragraphs on sentence boundaries.
+    4. Fall back to character slicing only for sentences that exceed chunk_size.
+    """
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+
+    # Flatten into sentence-level units so we never split mid-sentence
+    units: list[str] = []
+    for para in paragraphs:
+        if len(para) <= chunk_size:
+            units.append(para)
+        else:
+            units.extend(_split_sentences(para))
+
+    chunks: list[str] = []
+    current = ""
+
+    for unit in units:
+        # Unit alone exceeds chunk_size — slice it with overlap as a last resort
+        if len(unit) > chunk_size:
+            if current:
+                chunks.append(current)
+                current = ""
+            start = 0
+            while start < len(unit):
+                chunks.append(unit[start : start + chunk_size])
+                start += chunk_size - overlap
+            continue
+
+        candidate = f"{current}\n\n{unit}".strip() if current else unit
+        if len(candidate) <= chunk_size:
+            current = candidate
+        else:
+            if current:
+                chunks.append(current)
+            current = unit
+
+    if current:
+        chunks.append(current)
+
     return chunks
