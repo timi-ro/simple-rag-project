@@ -53,10 +53,11 @@ def ask(question: str) -> None:
         text = hit.payload.get("text", "")
         page = hit.payload.get("page")
         section = hit.payload.get("section_title")
+        file_type = hit.payload.get("file_type", "unknown")
         score = hit.score
         location = f"p.{page}" if page is not None else "n/a"
         section_str = f", section: {section}" if section else ""
-        context_blocks.append(f"[{i}] (source: {source}, page: {location}{section_str}, relevance: {score:.2f})\n{text}")
+        context_blocks.append(f"[{i}] (source: {source}, type: {file_type}, page: {location}{section_str}, relevance: {score:.2f})\n{text}")
 
     context = "\n\n---\n\n".join(context_blocks)
 

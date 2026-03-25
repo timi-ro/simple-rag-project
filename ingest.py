@@ -36,7 +36,7 @@ def build_chunks(file_path: str) -> tuple[list[str], list[dict]]:
         for page_num, page_text in pages:
             for chunk in chunk_text(page_text):
                 chunks.append(chunk)
-                metadata.append({"page": page_num, "section_title": None})
+                metadata.append({"page": page_num, "section_title": None, "file_type": "pdf"})
         return chunks, metadata
 
     if suffix in ("docx", "doc"):
@@ -45,12 +45,12 @@ def build_chunks(file_path: str) -> tuple[list[str], list[dict]]:
         for section_title, para_text in sections:
             for chunk in chunk_text(para_text):
                 chunks.append(chunk)
-                metadata.append({"page": None, "section_title": section_title})
+                metadata.append({"page": None, "section_title": section_title, "file_type": suffix})
         return chunks, metadata
 
     text = load_document(file_path)
     chunks = chunk_text(text)
-    return chunks, [{"page": None, "section_title": None}] * len(chunks)
+    return chunks, [{"page": None, "section_title": None, "file_type": suffix}] * len(chunks)
 
 
 def ingest(file_path: str) -> None:
