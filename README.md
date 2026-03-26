@@ -41,6 +41,14 @@ python ask.py "What is this document about?"
 python ask.py "Summarize the key points"
 ```
 
+**Filter results by file, type, or page range:**
+
+```bash
+python ask.py --source report.pdf "What are the risks?"
+python ask.py --type docx "What is the summary?"
+python ask.py --source report.pdf --pages 1-3 "What is on the first pages?"
+```
+
 **Use a different Ollama model:**
 
 ```bash
@@ -68,5 +76,5 @@ simple-rag-project/
 - [x] **Section awareness** — Parse `docx` heading styles (`Heading 1`, `Heading 2`) to attach a `section_title` to each paragraph chunk.
 - [x] **Smarter chunking** — Replace character-based chunking with heading-aware and paragraph-boundary strategies to avoid splitting mid-sentence or mid-concept.
 - [x] **Richer payload** — Extend the Qdrant point payload from `{text, source, chunk_id}` to include `page`, `section_title`, and `file_type`.
-- [ ] **Payload filtering** — Use Qdrant's `Filter` with `must` conditions to scope searches to a specific file, file type, or page range.
+- [x] **Payload filtering** — Use Qdrant's `Filter` with `must` conditions to scope searches to a specific file, file type, or page range.
 - [ ] **Retrieval evaluation** — Build a test set of question/answer pairs and measure retrieval precision (are the right chunks in the top-k?) using metrics like MRR and Recall@k.
