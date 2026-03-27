@@ -78,3 +78,26 @@ simple-rag-project/
 - [x] **Richer payload** — Extend the Qdrant point payload from `{text, source, chunk_id}` to include `page`, `section_title`, and `file_type`.
 - [x] **Payload filtering** — Use Qdrant's `Filter` with `must` conditions to scope searches to a specific file, file type, or page range.
 - [ ] **Retrieval evaluation** — Build a test set of question/answer pairs and measure retrieval precision (are the right chunks in the top-k?) using metrics like MRR and Recall@k.
+
+---
+
+## Mentor Feedback — Planned Fixes
+
+### Bugs (correctness & safety)
+
+- [ ] **Shared-dict reference** (`ingest.py:53`) — `[{...}] * n` creates `n` references to the same dict; replace with a list comprehension so each chunk gets its own metadata dict.
+- [ ] **Bare `except Exception`** (`ingest.py`, `ask.py`) — Replace with specific exceptions (`FileNotFoundError`, `QdrantException`, etc.) so real errors aren't silently swallowed.
+- [ ] **Scoped warning suppression** (`ingest.py`, `ask.py`) — Replace the global `warnings.filterwarnings("ignore")` with targeted `warnings.catch_warnings()` blocks around the specific imports that emit noise.
+
+### Retrieval quality
+
+- [ ] **Cross-page chunking for PDFs** — Currently each page is chunked independently, splitting concepts that span a page boundary. Concatenate full-document text first, then chunk, while still recording the starting page number per chunk.
+- [ ] **Group DOCX paragraphs before chunking** — Single paragraphs are passed to `chunk_text` one at a time; short paragraphs never get merged across section boundaries. Collect all paragraphs under a section into one block before chunking.
+
+### Data integrity
+
+- [ ] **Duplicate detection on ingest** — Before upserting, query Qdrant for existing points with the same `source` filename and skip (or warn) if they are already present, preventing doubled results on re-ingest.
+
+### Testing
+
+- [ ] **Unit tests for core functions** — Add `tests/` with pytest cases covering all main functionalities: `chunk_text` (boundary conditions), `build_filter` (filter construction), `load_pdf_pages`, `load_docx_sections`, `build_chunks`, and `ingest`. Minimum coverage target: **40%** (enforced via `pytest --cov`).
