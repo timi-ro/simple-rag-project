@@ -19,21 +19,22 @@ Set OLLAMA_MODEL env var to change the model (default: llama3.2).
 Requires Ollama running: https://ollama.com
 """
 
-import warnings
-warnings.filterwarnings("ignore")
-
 import argparse
 import os
 import sys
+import warnings
 
-import ollama
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=UserWarning)
+    warnings.filterwarnings("ignore", category=FutureWarning)
+    import ollama
+    from rag_utils import (
+        COLLECTION_NAME,
+        get_embedder,
+        get_qdrant_client,
+    )
+
 from qdrant_client.models import FieldCondition, Filter, MatchValue, Range
-
-from rag_utils import (
-    COLLECTION_NAME,
-    get_embedder,
-    get_qdrant_client,
-)
 
 TOP_K = 5
 MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2")
@@ -73,7 +74,7 @@ def ask(question: str, source: str | None, file_type: str | None, pages: str | N
             query_filter=query_filter,
             limit=TOP_K,
         ).points
-    except Exception:
+    except (ValueError, RuntimeError):
         print("No documents found. Run 'python ingest.py <file>' first.")
         sys.exit(1)
 

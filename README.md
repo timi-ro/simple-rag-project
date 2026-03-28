@@ -85,9 +85,9 @@ simple-rag-project/
 
 ### Bugs (correctness & safety)
 
-- [ ] **Shared-dict reference** (`ingest.py:53`) — `[{...}] * n` creates `n` references to the same dict; replace with a list comprehension so each chunk gets its own metadata dict.
-- [ ] **Bare `except Exception`** (`ingest.py`, `ask.py`) — Replace with specific exceptions (`FileNotFoundError`, `QdrantException`, etc.) so real errors aren't silently swallowed.
-- [ ] **Scoped warning suppression** (`ingest.py`, `ask.py`) — Replace the global `warnings.filterwarnings("ignore")` with targeted `warnings.catch_warnings()` blocks around the specific imports that emit noise.
+- [x] **Shared-dict reference** (`ingest.py:53`) — `[{...}] * n` creates `n` references to the same dict; replace with a list comprehension so each chunk gets its own metadata dict.
+- [x] **Bare `except Exception`** (`ingest.py`, `ask.py`) — Replace with specific exceptions (`FileNotFoundError`, `QdrantException`, etc.) so real errors aren't silently swallowed.
+- [x] **Scoped warning suppression** (`ingest.py`, `ask.py`) — Replace the global `warnings.filterwarnings("ignore")` with targeted `warnings.catch_warnings()` blocks around the specific imports that emit noise.
 
 ### Retrieval quality
 

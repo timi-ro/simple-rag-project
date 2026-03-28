@@ -6,24 +6,25 @@ Usage:
     python ingest.py path/to/document.docx
 """
 
-import warnings
-warnings.filterwarnings("ignore")
-
 import sys
 import uuid
+import warnings
 
 from qdrant_client.models import PointStruct
 
-from rag_utils import (
-    COLLECTION_NAME,
-    chunk_text,
-    ensure_collection,
-    get_embedder,
-    get_qdrant_client,
-    load_document,
-    load_docx_sections,
-    load_pdf_pages,
-)
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=UserWarning)
+    warnings.filterwarnings("ignore", category=FutureWarning)
+    from rag_utils import (
+        COLLECTION_NAME,
+        chunk_text,
+        ensure_collection,
+        get_embedder,
+        get_qdrant_client,
+        load_document,
+        load_docx_sections,
+        load_pdf_pages,
+    )
 
 
 def build_chunks(file_path: str) -> tuple[list[str], list[dict]]:
@@ -50,7 +51,7 @@ def build_chunks(file_path: str) -> tuple[list[str], list[dict]]:
 
     text = load_document(file_path)
     chunks = chunk_text(text)
-    return chunks, [{"page": None, "section_title": None, "file_type": suffix}] * len(chunks)
+    return chunks, [{"page": None, "section_title": None, "file_type": suffix} for _ in chunks]
 
 
 def ingest(file_path: str) -> None:
