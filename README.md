@@ -91,8 +91,8 @@ simple-rag-project/
 
 ### Retrieval quality
 
-- [ ] **Cross-page chunking for PDFs** — Currently each page is chunked independently, splitting concepts that span a page boundary. Concatenate full-document text first, then chunk, while still recording the starting page number per chunk.
-- [ ] **Group DOCX paragraphs before chunking** — Single paragraphs are passed to `chunk_text` one at a time; short paragraphs never get merged across section boundaries. Collect all paragraphs under a section into one block before chunking.
+- [x] **Cross-page chunking for PDFs** — Currently each page is chunked independently, splitting concepts that span a page boundary. Concatenate full-document text first, then chunk, while still recording the starting page number per chunk.
+- [x] **Group DOCX paragraphs before chunking** — Single paragraphs are passed to `chunk_text` one at a time; short paragraphs never get merged across section boundaries. Collect all paragraphs under a section into one block before chunking.
 
 ### Data integrity
 

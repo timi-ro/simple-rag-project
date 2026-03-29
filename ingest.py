@@ -27,24 +27,57 @@ with warnings.catch_warnings():
     )
 
 
+def _page_for_offset(page_offsets: list[tuple[int, int]], offset: int) -> int:
+    """Return the page number that contains the given character offset."""
+    page = page_offsets[0][1]
+    for start, pnum in page_offsets:
+        if start <= offset:
+            page = pnum
+        else:
+            break
+    return page
+
+
 def build_chunks(file_path: str) -> tuple[list[str], list[dict]]:
     """Return (chunks, metadata) where metadata[i] holds payload fields for chunk i."""
     suffix = file_path.rsplit(".", 1)[-1].lower()
 
     if suffix == "pdf":
         pages = load_pdf_pages(file_path)
-        chunks, metadata = [], []
+        # Concatenate all pages before chunking so concepts spanning page
+        # boundaries are not split; record where each page starts.
+        page_offsets: list[tuple[int, int]] = []
+        parts: list[str] = []
+        pos = 0
         for page_num, page_text in pages:
-            for chunk in chunk_text(page_text):
-                chunks.append(chunk)
-                metadata.append({"page": page_num, "section_title": None, "file_type": "pdf"})
+            page_offsets.append((pos, page_num))
+            parts.append(page_text)
+            pos += len(page_text) + 2  # +2 for the "\n\n" join separator
+        full_text = "\n\n".join(parts)
+
+        chunks, metadata = [], []
+        search_from = 0
+        for chunk in chunk_text(full_text):
+            idx = full_text.find(chunk, search_from)
+            chunk_start = idx if idx != -1 else search_from
+            search_from = chunk_start + len(chunk)
+            chunks.append(chunk)
+            metadata.append({
+                "page": _page_for_offset(page_offsets, chunk_start),
+                "section_title": None,
+                "file_type": "pdf",
+            })
         return chunks, metadata
 
     if suffix in ("docx", "doc"):
         sections = load_docx_sections(file_path)
+        # Group all paragraphs under the same section heading into one block
+        # before chunking so short paragraphs are merged across boundaries.
+        from itertools import groupby
         chunks, metadata = [], []
-        for section_title, para_text in sections:
-            for chunk in chunk_text(para_text):
+        for section_title, paras in groupby(sections, key=lambda x: x[0]):
+            section_text = "\n\n".join(p for _, p in paras)
+            for chunk in chunk_text(section_text):
                 chunks.append(chunk)
                 metadata.append({"page": None, "section_title": section_title, "file_type": suffix})
         return chunks, metadata
