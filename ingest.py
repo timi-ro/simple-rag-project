@@ -10,7 +10,7 @@ import sys
 import uuid
 import warnings
 
-from qdrant_client.models import PointStruct
+from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=UserWarning)
@@ -87,8 +87,32 @@ def build_chunks(file_path: str) -> tuple[list[str], list[dict]]:
     return chunks, [{"page": None, "section_title": None, "file_type": suffix} for _ in chunks]
 
 
+def _already_ingested(client, source_name: str) -> bool:
+    """Return True if any points with this source filename exist in the collection."""
+    existing = {c.name for c in client.get_collections().collections}
+    if COLLECTION_NAME not in existing:
+        return False
+    results, _ = client.scroll(
+        collection_name=COLLECTION_NAME,
+        scroll_filter=Filter(must=[FieldCondition(key="source", match=MatchValue(value=source_name))]),
+        limit=1,
+        with_payload=False,
+        with_vectors=False,
+    )
+    return len(results) > 0
+
+
 def ingest(file_path: str) -> None:
     print(f"Loading '{file_path}'...")
+    source_name = file_path.rsplit("/", 1)[-1]
+
+    client = get_qdrant_client()
+    ensure_collection(client)
+
+    if _already_ingested(client, source_name):
+        print(f"  '{source_name}' is already ingested — skipping. Delete its points first to re-ingest.")
+        return
+
     chunks, metadata = build_chunks(file_path)
     print(f"  Split into {len(chunks)} chunks")
 
@@ -96,10 +120,6 @@ def ingest(file_path: str) -> None:
     embedder = get_embedder()
     embeddings = embedder.encode(chunks, show_progress_bar=True, batch_size=64)
 
-    client = get_qdrant_client()
-    ensure_collection(client)
-
-    source_name = file_path.rsplit("/", 1)[-1]
     points = [
         PointStruct(
             id=str(uuid.uuid4()),

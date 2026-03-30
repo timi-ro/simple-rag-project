@@ -96,7 +96,7 @@ simple-rag-project/
 
 ### Data integrity
 
-- [ ] **Duplicate detection on ingest** — Before upserting, query Qdrant for existing points with the same `source` filename and skip (or warn) if they are already present, preventing doubled results on re-ingest.
+- [x] **Duplicate detection on ingest** — Before upserting, query Qdrant for existing points with the same `source` filename and skip (or warn) if they are already present, preventing doubled results on re-ingest.
 
 ### Testing
 
