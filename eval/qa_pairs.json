@@ -1,0 +1,13 @@
+[
+  {
+    "_comment": "Fill in real questions and expected sources from your ingested documents.",
+    "question": "What is the main purpose of this document?",
+    "expected_source": "example.pdf",
+    "expected_text": ""
+  },
+  {
+    "question": "What are the key recommendations?",
+    "expected_source": "example.pdf",
+    "expected_text": ""
+  }
+]

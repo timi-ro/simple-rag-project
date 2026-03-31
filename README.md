@@ -77,7 +77,7 @@ simple-rag-project/
 - [x] **Smarter chunking** — Replace character-based chunking with heading-aware and paragraph-boundary strategies to avoid splitting mid-sentence or mid-concept.
 - [x] **Richer payload** — Extend the Qdrant point payload from `{text, source, chunk_id}` to include `page`, `section_title`, and `file_type`.
 - [x] **Payload filtering** — Use Qdrant's `Filter` with `must` conditions to scope searches to a specific file, file type, or page range.
-- [ ] **Retrieval evaluation** — Build a test set of question/answer pairs and measure retrieval precision (are the right chunks in the top-k?) using metrics like MRR and Recall@k.
+- [x] **Retrieval evaluation** — Build a test set of question/answer pairs and measure retrieval precision (are the right chunks in the top-k?) using metrics like MRR and Recall@k.
 
 ---
 
