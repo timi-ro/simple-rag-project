@@ -100,4 +100,4 @@ simple-rag-project/
 
 ### Testing
 
-- [ ] **Unit tests for core functions** — Add `tests/` with pytest cases covering all main functionalities: `chunk_text` (boundary conditions), `build_filter` (filter construction), `load_pdf_pages`, `load_docx_sections`, `build_chunks`, and `ingest`. Minimum coverage target: **40%** (enforced via `pytest --cov`).
+- [x] **Unit tests for core functions** — Add `tests/` with pytest cases covering all main functionalities: `chunk_text` (boundary conditions), `build_filter` (filter construction), `load_pdf_pages`, `load_docx_sections`, `build_chunks`, and `ingest`. Minimum coverage target: **40%** (enforced via `pytest --cov`).

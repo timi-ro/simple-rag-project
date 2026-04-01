@@ -19,6 +19,8 @@ Set OLLAMA_MODEL env var to change the model (default: llama3.2).
 Requires Ollama running: https://ollama.com
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import sys

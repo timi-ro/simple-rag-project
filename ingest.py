@@ -6,6 +6,8 @@ Usage:
     python ingest.py path/to/document.docx
 """
 
+from __future__ import annotations
+
 import sys
 import uuid
 import warnings
