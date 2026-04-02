@@ -1,9 +1,13 @@
 """
-Ingest a PDF or Word document into Qdrant.
+Ingest a PDF or Word document into Qdrant, or manage ingested documents.
 
 Usage:
     python ingest.py path/to/document.pdf
     python ingest.py path/to/document.docx
+
+    python ingest.py --list                    list all ingested sources
+    python ingest.py --delete report.pdf       remove all chunks for a source
+    python ingest.py --delete report.pdf --force  skip confirmation prompt
 """
 
 from __future__ import annotations
@@ -104,6 +108,68 @@ def _already_ingested(client, source_name: str) -> bool:
     return len(results) > 0
 
 
+def list_sources(client) -> None:
+    """Print all ingested source filenames with their chunk counts."""
+    existing = {c.name for c in client.get_collections().collections}
+    if COLLECTION_NAME not in existing:
+        print("No documents ingested yet.")
+        return
+
+    counts: dict[str, int] = {}
+    offset = None
+    while True:
+        results, next_offset = client.scroll(
+            collection_name=COLLECTION_NAME,
+            offset=offset,
+            limit=256,
+            with_payload=["source"],
+            with_vectors=False,
+        )
+        for point in results:
+            src = (point.payload or {}).get("source", "<unknown>")
+            counts[src] = counts.get(src, 0) + 1
+        if next_offset is None:
+            break
+        offset = next_offset
+
+    if not counts:
+        print("No documents ingested yet.")
+        return
+
+    print(f"{'Source':<40}  {'Chunks':>6}")
+    print("─" * 50)
+    for src, count in sorted(counts.items()):
+        print(f"{src:<40}  {count:>6}")
+    print("─" * 50)
+    print(f"{'Total':<40}  {sum(counts.values()):>6}")
+
+
+def delete_source(client, source_name: str, force: bool = False) -> None:
+    """Delete all points belonging to source_name from the collection."""
+    existing = {c.name for c in client.get_collections().collections}
+    if COLLECTION_NAME not in existing:
+        print(f"  Collection does not exist — nothing to delete.")
+        return
+
+    if not _already_ingested(client, source_name):
+        print(f"  '{source_name}' not found in the collection.")
+        return
+
+    if not force:
+        answer = input(f"  Delete all chunks for '{source_name}'? [y/N] ").strip().lower()
+        if answer != "y":
+            print("  Aborted.")
+            return
+
+    client.delete(
+        collection_name=COLLECTION_NAME,
+        points_selector=Filter(
+            must=[FieldCondition(key="source", match=MatchValue(value=source_name))]
+        ),
+    )
+    print(f"  Deleted all chunks for '{source_name}' ✓")
+
+
 def ingest(file_path: str) -> None:
     print(f"Loading '{file_path}'...")
     source_name = file_path.rsplit("/", 1)[-1]
@@ -136,7 +202,22 @@ def ingest(file_path: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python ingest.py <document.pdf|document.docx>")
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Ingest documents or manage the Qdrant collection.")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("file", nargs="?", help="Document to ingest (.pdf, .docx, .txt, .md)")
+    group.add_argument("--list", action="store_true", help="List all ingested sources and chunk counts")
+    group.add_argument("--delete", metavar="SOURCE", help="Delete all chunks for the given source filename")
+    parser.add_argument("--force", action="store_true", help="Skip confirmation when deleting")
+    args = parser.parse_args()
+
+    if args.list:
+        list_sources(get_qdrant_client())
+    elif args.delete:
+        delete_source(get_qdrant_client(), args.delete, force=args.force)
+    elif args.file:
+        ingest(args.file)
+    else:
+        parser.print_help()
         sys.exit(1)
-    ingest(sys.argv[1])
