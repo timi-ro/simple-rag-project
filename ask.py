@@ -75,6 +75,7 @@ def ask(question: str, source: str | None, file_type: str | None, pages: str | N
             query=query_vector,
             query_filter=query_filter,
             limit=TOP_K,
+            score_threshold=0.3,
         ).points
     except (ValueError, RuntimeError):
         print("No documents found. Run 'python ingest.py <file>' first.")
