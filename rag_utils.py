@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 
 from qdrant_client import QdrantClient
@@ -12,6 +13,7 @@ EMBEDDING_DIM = 384
 QDRANT_PATH = "./qdrant_db"
 
 
+@lru_cache(maxsize=1)
 def get_embedder() -> SentenceTransformer:
     return SentenceTransformer(EMBEDDING_MODEL)
 
