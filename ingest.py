@@ -15,6 +15,7 @@ from __future__ import annotations
 import sys
 import uuid
 import warnings
+from pathlib import Path
 
 from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
 
@@ -172,7 +173,7 @@ def delete_source(client, source_name: str, force: bool = False) -> None:
 
 def ingest(file_path: str) -> None:
     print(f"Loading '{file_path}'...")
-    source_name = file_path.rsplit("/", 1)[-1]
+    source_name = Path(file_path).name
 
     client = get_qdrant_client()
     ensure_collection(client)
