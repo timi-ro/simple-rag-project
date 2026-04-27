@@ -1,11 +1,56 @@
 # Simple RAG Project
 
-A local Retrieval-Augmented Generation (RAG) system that lets you embed PDF, Word, and Markdown documents into a vector database and ask questions about them, entirely offline.
+A fully local Retrieval-Augmented Generation (RAG) system. Embed PDF, Word, and Markdown documents into a vector database and ask questions about them — no cloud, no API keys.
+
+> **Archived as learning artifact. Pivoted to frontend role at Scorealytics, May 2026.**
+
+---
+
+## What it does
+
+1. **Ingest** — Load a document, split it into chunks, embed each chunk with a local sentence-transformer model, and store the vectors + metadata in a local Qdrant database.
+2. **Ask** — Embed the question, retrieve the most relevant chunks by cosine similarity, and pass them as context to a local LLM (Ollama) to generate an answer.
+3. **Filter** — Scope retrieval to a specific file, file type, or page range using Qdrant payload filters.
+4. **Manage** — List all ingested sources with chunk counts, or delete a source to re-ingest.
+
+---
+
+## Architecture
+
+```
+simple-rag-project/
+├── ingest.py       # CLI: load → chunk → embed → upsert into Qdrant
+├── ask.py          # CLI: embed question → retrieve chunks → generate answer
+├── rag_utils.py    # Shared: document loaders, chunker, embedder, Qdrant client
+├── eval/           # Retrieval evaluation: Recall@k and MRR metrics
+├── tests/          # pytest unit tests (~66% coverage)
+└── qdrant_db/      # Local vector DB (auto-created, git-ignored)
+```
+
+**Data flow:**
+
+```
+Document file
+    → loader (PDF / DOCX / MD)          rag_utils.py
+    → paragraph- and section-aware chunker
+    → sentence-transformer encoder      (all-MiniLM-L6-v2, 384-dim)
+    → Qdrant upsert                     ingest.py
+
+Question
+    → sentence-transformer encoder
+    → Qdrant cosine search              (score_threshold=0.3, top-5)
+    → prompt assembly
+    → Ollama LLM                        ask.py
+    → streamed answer
+```
 
 **Stack:**
-- **Embeddings:** `all-MiniLM-L6-v2` via sentence-transformers (local, no API key)
-- **Vector DB:** Qdrant (local file storage, no Docker needed)
-- **LLM:** Ollama (local)
+
+| Layer      | Tool                                                        |
+|------------|-------------------------------------------------------------|
+| Embeddings | `all-MiniLM-L6-v2` via sentence-transformers                |
+| Vector DB  | Qdrant (local file, no Docker)                              |
+| LLM        | Ollama (`llama3.2` default, swappable via `OLLAMA_MODEL`)   |
 
 ---
 
@@ -13,91 +58,36 @@ A local Retrieval-Augmented Generation (RAG) system that lets you embed PDF, Wor
 
 ```bash
 pip install -r requirements.txt
-```
-
-Make sure Ollama is running with a model pulled:
-
-```bash
 ollama pull llama3.2
 ollama serve
 ```
 
----
-
 ## Usage
 
-**Ingest a document:**
-
 ```bash
+# Ingest
 python ingest.py path/to/document.pdf
-python ingest.py path/to/document.docx
 python ingest.py path/to/notes.md
-```
 
-**Ask a question:**
+# Ask
+python ask.py "What are the key risks?"
+python ask.py --source report.pdf --pages 1-3 "What is covered here?"
+python ask.py --type docx "Summarize the main points"
 
-```bash
-python ask.py "What is this document about?"
-python ask.py "Summarize the key points"
-```
+# Manage
+python ingest.py --list
+python ingest.py --delete report.pdf
 
-**Filter results by file, type, or page range:**
-
-```bash
-python ask.py --source report.pdf "What are the risks?"
-python ask.py --type docx "What is the summary?"
-python ask.py --source report.pdf --pages 1-3 "What is on the first pages?"
-```
-
-**Use a different Ollama model:**
-
-```bash
-OLLAMA_MODEL=mistral python ask.py "What are the main topics?"
+# Use a different model
+OLLAMA_MODEL=mistral python ask.py "What is this about?"
 ```
 
 ---
 
-## Project Structure
+## What I learned
 
-```
-simple-rag-project/
-├── ingest.py       # Load, chunk, embed, and store documents in Qdrant
-├── ask.py          # Embed a question, retrieve chunks, generate an answer
-├── rag_utils.py    # Shared utilities: loaders, chunker, embedder, Qdrant client
-├── requirements.txt
-└── qdrant_db/      # Local vector database (auto-created, git-ignored)
-```
-
----
-
-## Future Improvement in the Curriculum
-
-- [x] **Page tracking** — Extract text per page in `load_pdf` and store the page number in each chunk's Qdrant payload.
-- [x] **Section awareness** — Parse `docx` heading styles (`Heading 1`, `Heading 2`) to attach a `section_title` to each paragraph chunk.
-- [x] **Smarter chunking** — Replace character-based chunking with heading-aware and paragraph-boundary strategies to avoid splitting mid-sentence or mid-concept.
-- [x] **Richer payload** — Extend the Qdrant point payload from `{text, source, chunk_id}` to include `page`, `section_title`, and `file_type`.
-- [x] **Payload filtering** — Use Qdrant's `Filter` with `must` conditions to scope searches to a specific file, file type, or page range.
-- [x] **Retrieval evaluation** — Build a test set of question/answer pairs and measure retrieval precision (are the right chunks in the top-k?) using metrics like MRR and Recall@k.
-
----
-
-## Mentor Feedback — Planned Fixes
-
-### Bugs (correctness & safety)
-
-- [x] **Shared-dict reference** (`ingest.py:53`) — `[{...}] * n` creates `n` references to the same dict; replace with a list comprehension so each chunk gets its own metadata dict.
-- [x] **Bare `except Exception`** (`ingest.py`, `ask.py`) — Replace with specific exceptions (`FileNotFoundError`, `QdrantException`, etc.) so real errors aren't silently swallowed.
-- [x] **Scoped warning suppression** (`ingest.py`, `ask.py`) — Replace the global `warnings.filterwarnings("ignore")` with targeted `warnings.catch_warnings()` blocks around the specific imports that emit noise.
-
-### Retrieval quality
-
-- [x] **Cross-page chunking for PDFs** — Currently each page is chunked independently, splitting concepts that span a page boundary. Concatenate full-document text first, then chunk, while still recording the starting page number per chunk.
-- [x] **Group DOCX paragraphs before chunking** — Single paragraphs are passed to `chunk_text` one at a time; short paragraphs never get merged across section boundaries. Collect all paragraphs under a section into one block before chunking.
-
-### Data integrity
-
-- [x] **Duplicate detection on ingest** — Before upserting, query Qdrant for existing points with the same `source` filename and skip (or warn) if they are already present, preventing doubled results on re-ingest.
-
-### Testing
-
-- [x] **Unit tests for core functions** — Add `tests/` with pytest cases covering all main functionalities: `chunk_text` (boundary conditions), `build_filter` (filter construction), `load_pdf_pages`, `load_docx_sections`, `build_chunks`, and `ingest`. Minimum coverage target: **40%** (enforced via `pytest --cov`).
+- **Chunking strategy matters more than model choice.** Naive character-based chunking split sentences mid-thought and hurt retrieval quality noticeably. Switching to paragraph-boundary chunking with sentence-level fallback improved answer coherence without changing anything else.
+- **Metadata in the vector store unlocks filtering.** Storing `page`, `section_title`, and `file_type` alongside each vector made it possible to scope queries to specific parts of a document — a feature that's nearly impossible to bolt on after the fact.
+- **Score thresholds prevent hallucination.** Without a minimum similarity cutoff, the LLM received low-relevance chunks and confidently fabricated answers. A `score_threshold=0.3` filter meant the model received nothing rather than something misleading.
+- **Retrieval evaluation is a different discipline from generation evaluation.** Measuring Recall@k and MRR on a hand-labeled question set revealed retrieval failures that weren't visible when eyeballing LLM answers — the LLM was often papering over bad retrieval with plausible-sounding text.
+- **Local-first tooling is viable for real workloads.** Running embeddings, vector search, and a 3B LLM entirely on a laptop was fast enough for document-scale tasks, with no latency from network calls or rate limits.
